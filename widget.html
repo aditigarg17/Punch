@@ -1,0 +1,131 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Punch</title>
+<style>
+  :root{--accent:#7b98ff;--bg:#121826;--ink:#eef1f7;--mute:#98a2b8}
+  *{box-sizing:border-box}
+  html,body{margin:0;overflow:hidden;background:transparent;
+    font:13px "Segoe UI Variable","Segoe UI",system-ui,sans-serif;color:var(--ink)}
+  body{padding:8px}
+  .card{height:auto;border-radius:18px;padding:12px 14px;background:linear-gradient(160deg,#1a2133,#0f1420);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.45);
+    display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto auto;column-gap:12px;
+    -webkit-app-region:drag;user-select:none;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+  .card[data-cat="study"]{--accent:#f2a81d}
+  .card.late{--accent:#ff7a6e}
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-width:0;padding-left:4px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:beat 2s ease-in-out infinite}
+  .card.late .dot{animation-duration:.8s}
+  @keyframes beat{50%{opacity:.35;transform:scale(.8)}}
+  .name{font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+  .open{-webkit-app-region:no-drag;background:none;border:0;color:var(--mute);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:6px}
+  .open:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+  .mid{padding-left:4px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+  #t{font:700 30px/1.1 "Cascadia Mono",Consolas,monospace;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  #msg{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:15px}
+  .card.late #msg{color:var(--accent);font-weight:600}
+  #out{-webkit-app-region:no-drag;align-self:center;border:0;border-radius:12px;padding:10px 14px;cursor:pointer;
+    background:var(--accent);color:#0a1130;font:700 13px "Segoe UI",sans-serif;display:flex;align-items:center;gap:6px}
+  .card[data-cat="study"] #out{color:#1b1200}
+  #out:hover{filter:brightness(1.1)}
+  #out i{width:9px;height:9px;border-radius:2px;background:currentColor;display:inline-block}
+  #quote{grid-column:1/-1;margin-top:8px;padding:8px 4px 0;border-top:1px solid rgba(255,255,255,.08);
+    font-size:12px;line-height:1.35;font-style:italic;color:var(--mute);}
+  .card.idle #quote{display:none}
+  .card.idle #out{display:none}
+  .card.idle #t{font-size:20px;color:var(--mute)}
+</style></head><body>
+<div class="card" id="card" data-cat="work">
+  <div class="top"><i class="dot"></i><span class="name" id="name">Work</span><button class="open" id="open">Open</button></div>
+  <div class="mid"><span id="t">00:00:00</span><span id="msg"></span></div>
+  <button id="out"><i></i>Stop</button>
+  <div id="quote"></div>
+</div>
+<script>
+  const pad = n => String(n).padStart(2, '0');
+  const $ = id => document.getElementById(id);
+  let active = null, flash = '', flashUntil = 0;
+  const QUOTES = [
+    'Small steps every day add up to big results.',
+    'Focus on the next 25 minutes, not the whole mountain.',
+    'Done is better than perfect.',
+    'You do not have to be great to start, but you have to start to be great.',
+    'Discipline is choosing what you want most over what you want now.',
+    'The secret of getting ahead is getting started.',
+    'Deep work today, freedom tomorrow.',
+    'One task at a time. Finish it.',
+    'Consistency beats intensity.',
+    'Do it now. Future you will say thanks.',
+    'Progress, not perfection.',
+    'Energy flows where attention goes.',
+    'Be so focused that distractions cannot find you.',
+    'Remember to stop the timer when you are done.',
+    'Action is the foundational key to all success.',
+    'What you do every day matters more than what you do once in a while.',
+    'Start where you are. Use what you have. Do what you can.',
+    'Your future is created by what you do today, not tomorrow.',
+    'It always seems impossible until it is done.',
+    'Do the hard thing first.',
+    'A little progress each day adds up.',
+    'Do not watch the clock; do what it does. Keep going.',
+    'Quiet the noise. Do the work.',
+    'The best way to predict the future is to create it.',
+    'You are one focused session away from momentum.',
+    'Stay with it. The middle is always the hardest part.',
+    'Make today count, then log it.',
+    'Rest is part of the work. Breaks are allowed.'
+  ];
+  // Shuffled deck: every quote appears once before any repeats, and the deck survives restarts.
+  let deck = [];
+  function nextQuote() {
+    if (!deck.length) {
+      const last = localStorage.getItem('punchclock.lastQuote');
+      deck = QUOTES.map((_, i) => i).sort(() => Math.random() - 0.5);
+      if (String(deck[deck.length - 1]) === last && deck.length > 1) deck.unshift(deck.pop()); // avoid repeat across reshuffle
+    }
+    const i = deck.pop();
+    localStorage.setItem('punchclock.lastQuote', String(i));
+    return QUOTES[i];
+  }
+  const showQuote = () => { $('quote').textContent = '“' + nextQuote() + '”'; if (typeof fit === 'function') requestAnimationFrame(fit); };
+  setInterval(showQuote, 2 * 60 * 1000); // new quote every 2 min while running
+
+  // Size the window to fit its content so a long quote is never cut off.
+  let lastH = 0;
+  function fit() {
+    const h = Math.ceil($('card').getBoundingClientRect().height) + 18; // +2px slack for display-scaling rounding
+    if (h !== lastH) { lastH = h; window.punchDesktop.resize(h); }
+  }
+  function render() {
+    const card = $('card');
+    card.classList.toggle('idle', !active);
+    requestAnimationFrame(fit);
+    if (!active) {
+      $('t').textContent = flash || 'Checked out';
+      $('msg').textContent = ''; $('name').textContent = 'Punch';
+      card.classList.remove('late');
+      return;
+    }
+    const ms = Math.max(0, Date.now() - active.start), s = Math.floor(ms / 1000);
+    $('t').textContent = pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+    card.dataset.cat = active.cat;
+    $('name').textContent = (active.cat === 'work' ? 'Work' : 'Study') + (active.label ? ' · ' + active.label : '');
+    const late = active.remind > 0 && s >= active.remind * 60;
+    card.classList.toggle('late', late);
+    if (Date.now() < flashUntil) $('msg').textContent = flash;
+    else $('msg').textContent = late ? 'Still going? Stop if you are done.' : 'In since ' + new Date(active.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  window.punchDesktop.onState(a => {
+    if (a && (!active || active.start !== a.start)) showQuote(); // fresh quote per session
+    active = a; render();
+  });
+  showQuote();
+  window.punchDesktop.onToast(m => { flash = m; flashUntil = Date.now() + 3500; if (!active) setTimeout(render, 3500); render(); });
+  $('out').addEventListener('click', () => window.punchDesktop.checkout());
+  $('open').addEventListener('click', () => window.punchDesktop.openMain());
+  setInterval(render, 1000);
+  window.punchDesktop.ready();
+</script>
+</body></html>

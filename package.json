@@ -1,0 +1,55 @@
+{
+  "name": "punch",
+  "version": "1.0.0",
+  "description": "Punch: check in, check out, and a floating timer that never lets you forget",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/e2e.js",
+    "icons": "node build/make-icons.js",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "playwright-core": "^1.64.1",
+    "rcedit": "^4.0.1"
+  },
+  "productName": "Punch",
+  "author": "Aditi Garg",
+  "license": "MIT",
+  "build": {
+    "appId": "com.aditi.punch",
+    "productName": "Punch",
+    "copyright": "Copyright (c) Aditi Garg",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "widget.html",
+      "Punch Clock.html",
+      "build/icon.png",
+      "build/tray.png",
+      "build/tray-on.png",
+      "package.json",
+      "!test/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Punch",
+      "runAfterFinish": true
+    },
+    "afterPack": "build/after-pack.js"
+  }
+}

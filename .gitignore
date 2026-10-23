@@ -1,0 +1,7 @@
+node_modules/
+dist/
+run.log
+build.log
+# design leftovers, not part of the app
+ui.pdf
+Punch Clock.md
